@@ -17,3 +17,9 @@ docker build -t valu3s:robosimit .
 ```
 sh start_container.sh
 ```
+
+### Tested On
+- Xeon E3-1270 CPU
+- NVIDIA Quadro P2000 GPU
+- 64 GB RAM
+- Ubuntu 20.04.2 LTS
