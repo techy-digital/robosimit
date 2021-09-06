@@ -2,6 +2,8 @@ set +x
 export XSOCK=/tmp/.X11-unix
 export XAUTH=/tmp/.docker.xauth
 
+xhost +local:root
+
 
 docker run --gpus all \
     -v $XSOCK:$XSOCK \
