@@ -6,19 +6,22 @@ Robot Simulation Verification Tool
 - ROS Noetic Desktop Full
 - Gazebo 11
 - NVIDIA Driver (465)
+- SRVT Packege from IMTGD (https://github.com/inomuh)
 
-## Building Image
+## Building the Docker Image
 ```
 git clone https://github.com/techy-digital/robosimit.git
 cd robosimit
 docker build -t valu3s:robosimit .
 ```
-### Running a single container
+- You need to get SRVT package and copy it under `simulation` directory. Your Gazebo world files should also be located in `simulation/srvt_ros/model` directory.
+
+## Running a single container
 ```
 sh start_container.sh
 ```
 
-### Tested On
+## Tested On
 - Xeon E3-1270 CPU
 - NVIDIA Quadro P2000 GPU
 - 64 GB RAM

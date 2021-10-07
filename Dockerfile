@@ -37,7 +37,9 @@ RUN apt-get update && \
         libxext6 \
         libx11-6 \
         libegl1 \
-        libgl1-mesa-glx
+        libgl1-mesa-glx \
+	gnome-terminal \
+	python3-rosdep
 
 SHELL ["/bin/bash", "-c"]
 
@@ -46,8 +48,15 @@ ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 
 COPY robosimit_ep.sh /home/ros/
 RUN chmod +x /home/ros/robosimit_ep.sh
+
 WORKDIR /home/ros
 ENV DISPLAY :1
+
+RUN rosdep init
+RUN rosdep update
+RUN mkdir -p catkin_ws/src
+COPY simulation /home/ros/catkin_ws/src
+WORKDIR /home/ros/catkin_ws
 
 ENTRYPOINT ["/home/ros/robosimit_ep.sh"]
 CMD bash
