@@ -3,8 +3,6 @@
 source /opt/ros/noetic/setup.bash
 
 cd /home/ros/catkin_ws
-catkin_make
-catkin_make install
 
 source /home/ros/catkin_ws/devel/setup.bash
 source /usr/share/gazebo-11/setup.sh

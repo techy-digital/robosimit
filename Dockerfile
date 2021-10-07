@@ -58,5 +58,15 @@ RUN mkdir -p catkin_ws/src
 COPY simulation /home/ros/catkin_ws/src
 WORKDIR /home/ros/catkin_ws
 
+ENV CMAKE_PREFIX_PATH=/home/ros/catkin_ws/devel:/opt/ros/noetic
+ENV PYTHONPATH=/home/ros/catkin_ws/devel/lib/python3/dist-packages:/opt/ros/noetic/lib/python3/dist-packages
+ENV PKG_CONFIG_PATH=/home/ros/catkin_ws/devel/lib/pkgconfig:/opt/ros/noetic/lib/pkgconfig
+ENV PATH=/opt/ros/noetic/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV CATKIN_DEVEL_PREFIX=/home/ros/catkin_ws/devel
+ENV CMAKE_INSTALL_PREFIX=/home/ros/catkin_ws/install
+
+RUN /opt/ros/noetic/bin/catkin_make
+RUN /opt/ros/noetic/bin/catkin_make install
+
 ENTRYPOINT ["/home/ros/robosimit_ep.sh"]
 CMD bash
