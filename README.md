@@ -3,10 +3,12 @@ Robot Simulation Verification Tool
 
 ## Stack
 - Ubuntu 20.04.2 LTS (Host and guest)
+- NVIDIA Driver (465)
 - ROS Noetic Desktop Full
 - Gazebo 11
-- NVIDIA Driver (465)
-- SRVT Packege from IMTGD (https://github.com/inomuh)
+- MoveIt (https://moveit.ros.org/)
+- SMACH (http://wiki.ros.org/smach)
+- SRVT Package from IMTGD (https://github.com/inomuh)
 
 ## Building the Docker Image
 ```
