@@ -19,7 +19,14 @@ RUN echo "deb http://packages.ros.org/ros/ubuntu focal main" > /etc/apt/sources.
 RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 
 RUN apt-get update && apt-get -y -q install \
-        ros-noetic-desktop-full
+        ros-noetic-desktop-full \
+        ros-noetic-moveit \
+        python3-osrf-pycommon \
+        python3-catkin-tools \
+        ros-noetic-controller-manager \
+        ros-noetic-joint-trajectory-controller \
+        ros-noetic-rqt-joint-trajectory-controller \
+        ros-noetic-effort-controllers
 
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
@@ -39,15 +46,13 @@ RUN apt-get update && \
         libegl1 \
         libgl1-mesa-glx \
 	gnome-terminal \
-	python3-rosdep
+	python3-rosdep \
+        python3-pip
 
 SHELL ["/bin/bash", "-c"]
 
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
-
-COPY robosimit_ep.sh /home/ros/
-RUN chmod +x /home/ros/robosimit_ep.sh
 
 WORKDIR /home/ros
 ENV DISPLAY :1
@@ -65,8 +70,18 @@ ENV PATH=/opt/ros/noetic/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/
 ENV CATKIN_DEVEL_PREFIX=/home/ros/catkin_ws/devel
 ENV CMAKE_INSTALL_PREFIX=/home/ros/catkin_ws/install
 
+RUN pip install imgaug
+
 RUN /opt/ros/noetic/bin/catkin_make
 RUN /opt/ros/noetic/bin/catkin_make install
 
+#RUN apt-get purge whoopsie libwhoopsie0
+
+RUN dbus-uuidgen > /var/lib/dbus/machine-id
+RUN mkdir -p /var/run/dbus
+COPY NetworkManager.conf /usr/share/dbus-1/system.d/org.freedesktop.NetworkManager.conf
+
+COPY robosimit_ep.sh /home/ros/
+RUN chmod +x /home/ros/robosimit_ep.sh
+
 ENTRYPOINT ["/home/ros/robosimit_ep.sh"]
-CMD bash
