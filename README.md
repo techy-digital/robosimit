@@ -3,7 +3,7 @@ Robot Simulation Container Management and V&V Tool
 
 ## Stack
 - Ubuntu 20.04.2 LTS (Host and guest)
-- NVIDIA Driver (465)
+- NVIDIA Driver (465, 510)
 - ROS Noetic Desktop Full
 - Gazebo 11
 - MoveIt (https://moveit.ros.org/)
