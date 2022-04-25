@@ -1,5 +1,5 @@
 ## RoboSimIT
-Robot Simulation Verification Tool
+Robot Simulation Container Management and V&V Tool
 
 ## Stack
 - Ubuntu 20.04.2 LTS (Host and guest)
