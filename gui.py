@@ -1,5 +1,6 @@
 # This Python file uses the following encoding: utf-8
 import sys, logging
+from time import sleep
 from PyQt5 import QtWidgets, QtGui
 from PyQt5 import uic
 import subprocess, re
@@ -34,11 +35,18 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
         self.logTextBox.widget.setGeometry(10, 550, 1000, 200)
         self.dockerready = False
         self.imageready = False
+        self.containerRunning = False
         self.pushButton.clicked.connect(self.clickme)
         self.prechecks()
+        self.check_container()
     
     def clickme(self):
-        logging.debug("clicked.")
+        logging.info("Trying to start a simulation container.")
+        command = ['/bin/sh','sc.sh']
+        logging.debug(command)
+        running = subprocess.run(command, check=False, stderr=subprocess.STDOUT)
+        sleep(5)
+
 
     def prechecks(self):
         command = ['/usr/bin/docker', 'info']
@@ -61,8 +69,18 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
         m = regex.search(string)
         if m is not None:
             self.imageready = True
-            self.ContainerImageReadyResultLabel.setText('Ready ☑️')
+            self.ContainerImageReadyResultLabel.setText('Ready ☑️ [values:robosimit]')
 
+    def check_container(self):
+        command = ['/usr/bin/docker', 'ps', '|',  '/usr/bin/grep', 'valu3s:robosimit']
+        logging.debug(command)
+        try:
+            res = subprocess.check_output(command)
+            string = res.decode("utf-8")
+            logging.debug(string)
+            self.containerRunning = True
+        except:
+            self.containerRunning = False
 
 
 if __name__ == "__main__":
