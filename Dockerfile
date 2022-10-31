@@ -9,7 +9,10 @@ WORKDIR /home/ros
 ENV TZ=Europe/Istanbul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN sed -i -E -e "s:archive\.ubuntu:ubuntu.turhost:g" /etc/apt/sources.list
+#RUN sed -i -E -e "s:archive\.ubuntu\.com/ubuntu:mirror.verinomi.com/ubuntu/ubuntu-archive:g" /etc/apt/sources.list
+#RUN sed -i -E -e "s:http:https:g" /etc/apt/sources.list
+#RUN sed -i -E -e "s:deb https:deb [trusted=yes] https:g" /etc/apt/sources.list
+#RUN cat /etc/apt/sources.list
 RUN apt-get update && apt-get -y -q install \
         gnupg \
         apt-utils
@@ -49,6 +52,8 @@ RUN apt-get update && \
 	python3-rosdep \
         python3-pip
 
+RUN apt-get install -y locales locales-all
+
 SHELL ["/bin/bash", "-c"]
 
 ENV NVIDIA_VISIBLE_DEVICES=all
@@ -69,6 +74,9 @@ ENV PKG_CONFIG_PATH=/home/ros/catkin_ws/devel/lib/pkgconfig:/opt/ros/noetic/lib/
 ENV PATH=/opt/ros/noetic/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV CATKIN_DEVEL_PREFIX=/home/ros/catkin_ws/devel
 ENV CMAKE_INSTALL_PREFIX=/home/ros/catkin_ws/install
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
 
 RUN pip install imgaug
 
@@ -81,7 +89,18 @@ RUN dbus-uuidgen > /var/lib/dbus/machine-id
 RUN mkdir -p /var/run/dbus
 COPY NetworkManager.conf /usr/share/dbus-1/system.d/org.freedesktop.NetworkManager.conf
 
+RUN mkdir -p /home/ros/.gazebo/models
+COPY simulation/srvt-ros/srvt_ros/model /home/ros/.gazebo/models/
+
+RUN groupadd -r ros && useradd -u 1001 -r -g ros ros
+RUN chown -R ros /home/ros
+
 COPY robosimit_ep.sh /home/ros/
 RUN chmod +x /home/ros/robosimit_ep.sh
+
+COPY robosimit_ep_copy.sh /home/ros/
+RUN chmod +x /home/ros/robosimit_ep_copy.sh
+RUN chmod +x /home/ros/catkin_ws/src/srvt-ros/srvt_moveit/src/*.py
+USER ros
 
 ENTRYPOINT ["/home/ros/robosimit_ep.sh"]
