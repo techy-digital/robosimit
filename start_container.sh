@@ -13,5 +13,6 @@ docker run --gpus all \
     --rm \
     -it \
     --name test1 \
+    --label etiket=valu3s \
     valu3s:robosimit \
     bash

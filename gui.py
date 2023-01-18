@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys, logging
 from time import sleep
-from PyQt5 import QtWidgets, QtGui
-from PyQt5 import uic
+from PyQt5 import QtWidgets, QtGui, uic
+from PyQt5.QtCore import QThread, pyqtSignal, QObject
 import subprocess, re
 
 logfile = 'gui.log'
@@ -12,6 +12,35 @@ logging.basicConfig(filename=logfile,
                     format='%(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 
+class Worker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+    def run(self):
+        running = subprocess.run("/bin/sh start_container.sh", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False, shell=True)
+        self.finished.emit()
+
+class CheckContainer(QObject):
+    containerRunning = pyqtSignal(bool)
+    command = ['/usr/bin/docker', 'ps', '--filter', 'label=etiket=valu3s']
+    containerID = pyqtSignal(str)
+    def run(self):
+        while True:
+            try:
+                res = subprocess.check_output(self.command)
+                string = res.decode("utf-8")
+                regex = re.compile('([a-z0-9]{12})')
+                m = regex.search(string)
+                if m is not None:
+                    containerID = m.group(0)
+                    self.containerRunning.emit(True)
+                    self.containerID.emit(containerID)
+                else:
+                    self.containerRunning.emit(False)
+                    self.containerID.emit("")
+            except:
+                self.containerRunning.emit(False)
+            sleep(5)
+    
 class QTextEditLogger(logging.Handler):
     def __init__(self, parent):
         super().__init__()
@@ -36,17 +65,63 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
         self.dockerready = False
         self.imageready = False
         self.containerRunning = False
-        self.pushButton.clicked.connect(self.clickme)
+        self.runningContainerID = ""
+        self.startContainerButton.clicked.connect(self.startContainer)
+        self.stopContainerButton.clicked.connect(self.stopContainer)
         self.prechecks()
-        self.check_container()
-    
-    def clickme(self):
-        logging.info("Trying to start a simulation container.")
-        command = ['/bin/sh','sc.sh']
-        logging.debug(command)
-        running = subprocess.run(command, check=False, stderr=subprocess.STDOUT)
-        sleep(5)
+        self.startChecker()
 
+    def updateContainerRunning(self, isRunning):
+        if isRunning:
+            if self.runningContainerID:
+                self.containerRunning = True
+                self.ContainerRunningLabel.setText('Container Running, ID: ' + self.runningContainerID)
+            else:
+                self.containerRunning = False
+                self.ContainerRunningLabel.setText('Container Running, ID: Unknown')
+        else:
+            self.containerRunning = False
+            self.ContainerRunningLabel.setText('Container Not Running!')
+    
+    def updateContainerID(self, ID):
+        self.runningContainerID = ID
+
+    def startContainer(self):
+        logging.info("Trying to start a simulation container.")
+        self.runthread = QThread()
+        self.worker = Worker()
+        self.worker.moveToThread(self.runthread)
+        self.runthread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.runthread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.runthread.finished.connect(self.runthread.deleteLater)
+        self.runthread.start()
+
+    def startChecker(self):
+        logging.info("Starting the container checker thread.")
+        self.checkthread = QThread()
+        self.checkcontainerworker = CheckContainer()
+        self.checkcontainerworker.moveToThread(self.checkthread)
+        self.checkthread.started.connect(self.checkcontainerworker.run)
+        #self.checkcontainerworker.finished.connect(self.checkthread.quit)
+        #self.checkcontainerworker.finished.connect(self.checkcontainerworker.deleteLater)
+        #self.checkthread.finished.connect(self.checkthread.deleteLater)
+        self.checkcontainerworker.containerRunning.connect(self.updateContainerRunning)
+        self.checkcontainerworker.containerID.connect(self.updateContainerID)
+        self.checkthread.start()
+         
+    def stopContainer(self):
+        if not self.containerRunning:
+            logging.info("No container is running!")
+        else:
+            if self.runningContainerID:
+                logging.info("Trying to stop a running container with ID: " + self.runningContainerID)
+                command = ['/usr/bin/docker', 'stop', self.runningContainerID]
+                res = subprocess.check_output(command)
+                self.runthread.quit()
+                self.runningContainerID = ""
+            else:
+                logging.info("Trying to stop a running container with no ID")
 
     def prechecks(self):
         command = ['/usr/bin/docker', 'info']
@@ -59,29 +134,15 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
         if m is not None:
             self.dockerready = True
             self.DockerReadyResultLabel.setText('Ready ☑️' + '\n' + m.group(0))
-            logging.debug(m.group(0))
-        
+            logging.debug(m.group(0))        
         command = ['docker', 'images', 'valu3s:robosimit']
         res = subprocess.check_output(command)
         string = res.decode("utf-8")
-        print(string)
         regex = re.compile('valu3s')
         m = regex.search(string)
         if m is not None:
             self.imageready = True
             self.ContainerImageReadyResultLabel.setText('Ready ☑️ [values:robosimit]')
-
-    def check_container(self):
-        command = ['/usr/bin/docker', 'ps', '|',  '/usr/bin/grep', 'valu3s:robosimit']
-        logging.debug(command)
-        try:
-            res = subprocess.check_output(command)
-            string = res.decode("utf-8")
-            logging.debug(string)
-            self.containerRunning = True
-        except:
-            self.containerRunning = False
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
