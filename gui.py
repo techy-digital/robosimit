@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys, logging
 from time import sleep
-from PyQt5 import QtWidgets, QtGui, uic
+from PyQt5 import QtWidgets, uic, QtCore
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
 import subprocess, re
 
@@ -11,6 +11,33 @@ logging.basicConfig(filename=logfile,
                     filemode='a', 
                     format='%(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
+
+class CheckNodeList(QObject):
+    def __init__(self, mainWindowObject):
+        super().__init__()
+        self.mwo = mainWindowObject
+        self.nodelist = []
+    def run(self):
+        while True:
+            sleep(10)
+            if self.mwo.runningContainerID:
+                self.mwo.rosNodeListWidget.setEnabled(True)
+                self.mwo.rosNodeListLabel.setEnabled(True)
+                command = ['/usr/bin/docker', 'container', 'exec', self.mwo.runningContainerID, 'rosnode', 'list']
+                res = subprocess.check_output(command)
+                string = res.decode("utf-8")
+                currentnodelist = string.splitlines()
+                for node in currentnodelist:
+                    if node not in self.nodelist:
+                        self.nodelist.append(node)
+                        self.mwo.rosNodeListWidget.addItem(node)
+                print("currentnodelist: ", len(currentnodelist))
+                print("self.nodelist: ", len(self.nodelist))
+                for node in self.nodelist:
+                    if node not in currentnodelist:
+                        exitednode = self.mwo.rosNodeListWidget.findItems(node, QtCore.Qt.MatchFlag.MatchExactly)
+                        flags = exitednode[0].flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled
+                        exitednode[0].setFlags(flags)                    
 
 class Worker(QObject):
     finished = pyqtSignal()
@@ -55,13 +82,14 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("robosimit.ui", self)
+        self.rosNodeListWidget.enabled = False
         self.logTextBox = QTextEditLogger(self)
         # You can format what is printed to text box
         self.logTextBox.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         logging.getLogger().addHandler(self.logTextBox)
         # You can control the logging level
         logging.getLogger().setLevel(logging.DEBUG)
-        self.logTextBox.widget.setGeometry(10, 550, 1000, 200)
+        self.logTextBox.widget.setGeometry(10, 550, 1100, 200)
         self.dockerready = False
         self.imageready = False
         self.containerRunning = False
@@ -70,6 +98,7 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
         self.stopContainerButton.clicked.connect(self.stopContainer)
         self.prechecks()
         self.startChecker()
+        self.startNodeListChecker()
 
     def updateContainerRunning(self, isRunning):
         if isRunning:
@@ -97,19 +126,6 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
         self.runthread.finished.connect(self.runthread.deleteLater)
         self.runthread.start()
 
-    def startChecker(self):
-        logging.info("Starting the container checker thread.")
-        self.checkthread = QThread()
-        self.checkcontainerworker = CheckContainer()
-        self.checkcontainerworker.moveToThread(self.checkthread)
-        self.checkthread.started.connect(self.checkcontainerworker.run)
-        #self.checkcontainerworker.finished.connect(self.checkthread.quit)
-        #self.checkcontainerworker.finished.connect(self.checkcontainerworker.deleteLater)
-        #self.checkthread.finished.connect(self.checkthread.deleteLater)
-        self.checkcontainerworker.containerRunning.connect(self.updateContainerRunning)
-        self.checkcontainerworker.containerID.connect(self.updateContainerID)
-        self.checkthread.start()
-         
     def stopContainer(self):
         if not self.containerRunning:
             logging.info("No container is running!")
@@ -123,6 +139,27 @@ class RoboSimITWindow(QtWidgets.QMainWindow):
             else:
                 logging.info("Trying to stop a running container with no ID")
 
+    def startNodeListChecker(self):
+        logging.info("Starting the ROS node list checker thread.")
+        self.nodecheckthread = QThread()
+        self.nodecheckworker = CheckNodeList(self)
+        self.nodecheckworker.moveToThread(self.nodecheckthread)
+        self.nodecheckthread.started.connect(self.nodecheckworker.run)
+        self.nodecheckthread.start()
+
+    def startChecker(self):
+        logging.info("Starting the container checker thread.")
+        self.checkthread = QThread()
+        self.checkcontainerworker = CheckContainer()
+        self.checkcontainerworker.moveToThread(self.checkthread)
+        self.checkthread.started.connect(self.checkcontainerworker.run)
+        #self.checkcontainerworker.finished.connect(self.checkthread.quit)
+        #self.checkcontainerworker.finished.connect(self.checkcontainerworker.deleteLater)
+        #self.checkthread.finished.connect(self.checkthread.deleteLater)
+        self.checkcontainerworker.containerRunning.connect(self.updateContainerRunning)
+        self.checkcontainerworker.containerID.connect(self.updateContainerID)
+        self.checkthread.start()
+         
     def prechecks(self):
         command = ['/usr/bin/docker', 'info']
         logging.debug(command)
