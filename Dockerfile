@@ -99,7 +99,7 @@ COPY robosimit_ep.sh /home/ros/
 RUN chmod +x /home/ros/robosimit_ep.sh
 
 COPY robosimit_ep_copy.sh /home/ros/
-RUN chmod +x /home/ros/robosimit_ep_copy.sh
+RUN chmod +x /home/ros/robosimit_ep.sh
 RUN chmod +x /home/ros/catkin_ws/src/srvt-ros/srvt_moveit/src/*.py
 USER ros
 
