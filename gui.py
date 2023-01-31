@@ -31,8 +31,6 @@ class CheckNodeList(QObject):
                     if node not in self.nodelist:
                         self.nodelist.append(node)
                         self.mwo.rosNodeListWidget.addItem(node)
-                print("currentnodelist: ", len(currentnodelist))
-                print("self.nodelist: ", len(self.nodelist))
                 for node in self.nodelist:
                     if node not in currentnodelist:
                         exitednode = self.mwo.rosNodeListWidget.findItems(node, QtCore.Qt.MatchFlag.MatchExactly)
