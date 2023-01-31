@@ -1,5 +1,8 @@
 ## RoboSimIT
 Robot Simulation Container Management and V&V Tool
+```
+python3 gui.py
+```
 
 ## Stack
 - Ubuntu 20.04.2 LTS (Host and guest)
